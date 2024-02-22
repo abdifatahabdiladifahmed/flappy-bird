@@ -1,20 +1,44 @@
-// Get canvas and context
+// get canvas and context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Set canvas dimensions
-canvas.width = 480; // Match with CSS for consistency
-canvas.height = 640; // Match with CSS for consistency
+// set canvas dimensions
+canvas.width = 480;
+canvas.height = 640;
 
-// Game variables
+// sound effects
+const soundJump = new Audio('sounds/flap.wav');
+const soundScore = new Audio('sounds/score.wav');
+const soundGameOver = new Audio('sounds/game_over.wav');
+
+// game variables
 let score = 0;
 let highScore = 0;
 let gameSpeed = 2;
 let gravity = 0.25;
 let gameRunning = true;
 let gameOverDisplayed = false;
+let isMuted = false; // initial volume state
 
-// Bird object
+// determine the time of day for background
+function getTimeOfDay() {
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 18) return 'afternoon';
+    if (hour >= 18 && hour < 22) return 'evening';
+    return 'night';
+}
+
+// update the background based on time of day
+function updateBackground() {
+    const timeOfDay = getTimeOfDay();
+    const gameContainer = document.getElementById('gameContainer');
+    gameContainer.className = ''; // clear previous classes
+    gameContainer.classList.add(`background-${timeOfDay}`);
+}
+
+// bird object
 const bird = {
     x: 150,
     y: canvas.height / 2,
@@ -30,28 +54,28 @@ const bird = {
         this.velocity += gravity;
         this.y += this.velocity;
 
-        if (this.y + this.size > canvas.height || this.y - this.size < 0) { // Ground or ceiling collision
+        if (this.y + this.size > canvas.height || this.y - this.size < 0) { // ground or ceiling collision
             gameOver();
         }
     }
 };
 
-// Pipes
+// pipes
 const pipes = [];
 const pipeWidth = 60;
-const pipeGap = 150; // Consistent gap size
-const pipeInterval = 2000; // How often to spawn pipes
-const upperPipeMargin = 80; // Minimum distance of the top pipe from the canvas top
-const lowerPipeMargin = 80; // Minimum distance of the bottom pipe from the canvas bottom
+const pipeGap = 150; // consistent gap size
+const pipeInterval = 2000; // how often to spawn pipes
+const upperPipeMargin = 80; // minimum distance of the top pipe from the canvas top
+const lowerPipeMargin = 80; // minimum distance of the bottom pipe from the canvas bottom
 
-// Global variable for the pipe spawn timer
+// global variable for the pipe spawn timer
 let pipeSpawnTimer;
 
-// Adjusted spawnPipes function
+// adjusted spawnPipes function
 function spawnPipes() {
     if (!gameRunning) return;
 
-    clearTimeout(pipeSpawnTimer); // Clear any existing timer
+    clearTimeout(pipeSpawnTimer); // clear any existing timer
 
     const gapPosition = Math.random() * (canvas.height - lowerPipeMargin - pipeGap - upperPipeMargin) + upperPipeMargin;
 
@@ -61,22 +85,22 @@ function spawnPipes() {
         scored: false
     });
 
-    pipeSpawnTimer = setTimeout(spawnPipes, pipeInterval); // Set a new timer
+    pipeSpawnTimer = setTimeout(spawnPipes, pipeInterval); // set a new timer
 }
 
-// Draw pipes and handle game logic
+// draw pipes and handle game logic
 function drawPipes() {
     pipes.forEach(pipe => {
         ctx.fillStyle = 'green';
-        // Top pipe
+        // top pipe
         ctx.fillRect(pipe.x, 0, pipeWidth, canvas.height / 2 + pipe.y);
-        // Bottom pipe
+        // bottom pipe
         ctx.fillRect(pipe.x, canvas.height / 2 + pipe.y + pipeGap, pipeWidth, canvas.height);
 
-        // Move pipes
+        // move pipes
         pipe.x -= gameSpeed;
 
-        // Collision detection
+        // collision detection
         if (
             bird.x < pipe.x + pipeWidth &&
             bird.x + bird.size > pipe.x &&
@@ -85,36 +109,39 @@ function drawPipes() {
             gameOver();
         }
 
-        // Score
+        // score
         if (pipe.x + pipeWidth < bird.x && !pipe.scored) {
             score++;
-            pipe.scored = true; // Prevent multiple score increments per pipe
+            pipe.scored = true; // prevent multiple score increments per pipe
+            if (!isMuted) soundScore.play();
             if (score > highScore) {
-                highScore = score; // Update high score if current score is greater
+                highScore = score; // update high score if current score is greater
             }
         }
     });
 }
 
-// Listen for key presses to control the bird
+// listen for key presses to control the bird
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
         if (!gameRunning && gameOverDisplayed) {
             restartGame();
         } else {
-            bird.velocity = -5; // Adjust for jump strength
+            bird.velocity = -5; // adjust for jump strength
+            if (!isMuted) soundJump.play();
         }
     }
 });
 
-// Game over
+// game over
 function gameOver() {
     gameRunning = false;
     gameOverDisplayed = true;
-    setTimeout(drawGameOver, 100); // Ensure game over text is drawn last
+    if (!isMuted) soundGameOver.play();
+    setTimeout(drawGameOver, 100); // ensure game over text is drawn last
 }
 
-// Draw Game Over Text and scores
+// draw game over text and scores
 function drawGameOver() {
     ctx.font = '30px Arial';
     ctx.fillStyle = 'black';
@@ -124,12 +151,12 @@ function drawGameOver() {
     ctx.fillText('Press Space to Restart', canvas.width / 2 - 150, canvas.height / 2 + 120);
 }
 
-// Restart the game
+// restart the game
 function restartGame() {
-    clearTimeout(pipeSpawnTimer); // Ensure no timers are left running
+    clearTimeout(pipeSpawnTimer); // ensure no timers are left running
     gameRunning = true;
     gameOverDisplayed = false;
-    pipes.length = 0; // Clear pipes
+    pipes.length = 0; // clear pipes
     bird.y = canvas.height / 2;
     bird.velocity = 0;
     score = 0;
@@ -137,27 +164,64 @@ function restartGame() {
     animate();
 }
 
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-    bird.update();
-    bird.draw();
-    drawPipes();
-    displayScore(); // Display the current score
-    if (gameRunning) {
-        requestAnimationFrame(animate); // Create an infinite loop
-    }
-    if (gameOverDisplayed) {
-        drawGameOver();
-    }
+// toggle sound
+function toggleSound() {
+    isMuted = !isMuted;
+    // no need to adjust each sound's volume individually since they're controlled by isMuted flag during play calls
+    updateVolumeButton(); // update the volume button without reinitializing the animation loop
 }
 
-// Display the current score
+// draw the volume button
+function drawVolumeButton() {
+    ctx.font = '30px Arial';
+    ctx.fillStyle = 'black';
+    ctx.fillText(isMuted ? '🔇' : '🔊', canvas.width - 50, 40);
+}
+
+// update only the volume button area
+function updateVolumeButton() {
+    ctx.clearRect(canvas.width - 60, 0, 60, 50); // clear the area where the volume button is drawn
+    drawVolumeButton(); // redraw the volume button
+}
+
+canvas.addEventListener('click', function(event) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width; // determine the scale factor for x
+    const scaleY = canvas.height / rect.height; // determine the scale factor for y
+    const x = (event.clientX - rect.left) * scaleX; // adjust click x coordinate
+    const y = (event.clientY - rect.top) * scaleY; // adjust click y coordinate
+
+    // check if the click is within the bounds of the volume button
+    if (x >= canvas.width - 60 && x <= canvas.width && y >= 0 && y <= 50) {
+        toggleSound();
+    }
+});
+
+// display the current score
 function displayScore() {
     ctx.font = '20px Arial';
     ctx.fillStyle = 'black';
     ctx.fillText('Score: ' + score, 20, 30);
 }
 
-// Initial call to start the game
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // clear canvas
+    bird.update();
+    bird.draw();
+    drawPipes();
+    displayScore(); // display the current score
+    drawVolumeButton();
+    if (gameRunning) {
+        requestAnimationFrame(animate); // create an infinite loop
+    }
+    if (gameOverDisplayed) {
+        drawGameOver();
+    }
+}
+
+// call to set the background based on the current time
+updateBackground();
+
+// initial call to start the game
 spawnPipes();
 animate();

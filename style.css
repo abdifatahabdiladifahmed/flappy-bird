@@ -7,18 +7,37 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #87CEEB; /* Sky blue background */
+    font-family: 'Arial', sans-serif;
 }
 
 #gameContainer {
-    width: 480px; /* Adjust based on your game design */
-    height: 640px; /* Adjust based on your game design */
+    width: 480px;
+    height: 640px;
     position: relative;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    overflow: hidden;
 }
 
 canvas {
     width: 100%;
     height: 100%;
-    background-color: #FFFFFF; /* White background for the canvas */
+    background-color: transparent;
+}
+
+.background-morning {
+    background: linear-gradient(180deg, #a2d5f2 0%, #ffffff 100%);
+}
+
+.background-afternoon {
+    background: linear-gradient(180deg, #87CEEB 0%, #1E90FF 100%);
+}
+
+.background-evening {
+    background: linear-gradient(180deg, #FFD700 0%, #FF8C00 100%);
+}
+
+.background-night {
+    background: linear-gradient(180deg, #000033 0%, #000080 100%);
 }
 
