@@ -64,8 +64,6 @@ function spawnPipes() {
     pipeSpawnTimer = setTimeout(spawnPipes, pipeInterval); // Set a new timer
 }
 
-
-
 // Draw pipes and handle game logic
 function drawPipes() {
     pipes.forEach(pipe => {
