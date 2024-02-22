@@ -44,9 +44,14 @@ const pipeInterval = 2000; // How often to spawn pipes
 const upperPipeMargin = 80; // Minimum distance of the top pipe from the canvas top
 const lowerPipeMargin = 80; // Minimum distance of the bottom pipe from the canvas bottom
 
-// Spawn pipes with consistent openings
+// Global variable for the pipe spawn timer
+let pipeSpawnTimer;
+
+// Adjusted spawnPipes function
 function spawnPipes() {
     if (!gameRunning) return;
+
+    clearTimeout(pipeSpawnTimer); // Clear any existing timer
 
     const gapPosition = Math.random() * (canvas.height - lowerPipeMargin - pipeGap - upperPipeMargin) + upperPipeMargin;
 
@@ -56,8 +61,10 @@ function spawnPipes() {
         scored: false
     });
 
-    setTimeout(spawnPipes, pipeInterval);
+    pipeSpawnTimer = setTimeout(spawnPipes, pipeInterval); // Set a new timer
 }
+
+
 
 // Draw pipes and handle game logic
 function drawPipes() {
@@ -121,6 +128,7 @@ function drawGameOver() {
 
 // Restart the game
 function restartGame() {
+    clearTimeout(pipeSpawnTimer); // Ensure no timers are left running
     gameRunning = true;
     gameOverDisplayed = false;
     pipes.length = 0; // Clear pipes
